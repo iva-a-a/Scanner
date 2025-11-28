@@ -16,7 +16,7 @@ struct NetworkAnalyzerApp: App {
 
     var body: some Scene {
         WindowGroup {
-            MainAppView()
+            LaunchScreen()
         }
     }
 }
