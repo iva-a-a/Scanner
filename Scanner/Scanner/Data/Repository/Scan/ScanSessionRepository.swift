@@ -41,15 +41,15 @@ final class ScanSessionRepository: ScanSessionRepositoryProtocol {
     }
 
     func fetchSessions() async throws -> [ScanSession] {
-        try await context.perform {
+        let result = try await context.perform {
             let request: NSFetchRequest<ScanSessionEntity> = ScanSessionEntity.fetchRequest()
             request.sortDescriptors = [
                 NSSortDescriptor(key: "startDate", ascending: false)
             ]
 
-            let result = try self.context.fetch(request)
-            return result.map(ScanSessionMapper.toDomain)
+            return try self.context.fetch(request)
         }
+        return result.map(ScanSessionMapper.toDomain)
     }
 
     func deleteSession(id: UUID) async throws {

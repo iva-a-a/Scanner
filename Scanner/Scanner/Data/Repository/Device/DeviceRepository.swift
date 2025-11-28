@@ -36,13 +36,13 @@ final class DeviceRepository: DeviceRepositoryProtocol {
     }
 
     func fetchDevices(for sessionId: UUID) async throws -> [Device] {
-        try await context.perform {
+        let result = try await context.perform {
             let request: NSFetchRequest<DeviceEntity> = DeviceEntity.fetchRequest()
             request.predicate = NSPredicate(format: "scanSession.id == %@", sessionId as CVarArg)
 
-            let result = try self.context.fetch(request)
-            return result.map(DeviceMapper.toDomain(_:))
+            return try self.context.fetch(request)
         }
+        return result.map(DeviceMapper.toDomain(_:))
     }
 
     func deleteDevices(for sessionId: UUID) async throws {
@@ -63,6 +63,29 @@ final class DeviceRepository: DeviceRepositoryProtocol {
             let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetch)
             try self.context.execute(deleteRequest)
             try context.save()
+        }
+    }
+    
+    func fetchSessionIdsMatchingDeviceName(_ name: String) async throws -> [UUID] {
+        try await context.perform {
+
+            let request = NSFetchRequest<NSDictionary>(entityName: "DeviceEntity")
+
+            request.predicate = NSPredicate(
+                format: "name CONTAINS[cd] %@",
+                name
+            )
+
+            request.resultType = .dictionaryResultType
+            request.propertiesToFetch = ["scanSession.id"]
+
+            let raw = try self.context.fetch(request)
+
+            let ids: [UUID] = raw.compactMap { dict in
+                dict["scanSession.id"] as? UUID
+            }
+
+            return Array(Set(ids)) // уникализируем
         }
     }
 }
