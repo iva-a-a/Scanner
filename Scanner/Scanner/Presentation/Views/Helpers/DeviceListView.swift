@@ -9,6 +9,8 @@ import SwiftUI
 
 struct DevicesListView: View {
     let devices: [Device]
+    let onConnect: (Device) -> Void
+    let onDisconnect: (Device) -> Void
 
     var body: some View {
         ScrollView {
@@ -17,9 +19,13 @@ struct DevicesListView: View {
                     NavigationLink {
                         DeviceDetailsView(device: device)
                     } label: {
-                        DeviceCard(device: device)
-                            .contentShape(Rectangle())
-                            .frame(minHeight: 70)
+                        DeviceCard(
+                            device: device,
+                             onConnect: { onConnect(device) },
+                             onDisconnect: { onDisconnect(device) }
+                        )
+                        .contentShape(Rectangle())
+                        .frame(minHeight: 70)
                     }
                 }
             }
