@@ -8,183 +8,155 @@
 
 import Foundation
 internal import Combine
-//
-//@MainActor
-//final class ScanViewModel: ObservableObject {
-//
-//    @Published var devices: [Device] = []
-//    @Published var isScanning = false
-//
-//    private let sessionRepo: ScanSessionRepositoryProtocol
-//    private let deviceRepo: DeviceRepositoryProtocol
-//    private let bt: BluetoothServiceProtocol
-//    private let lan: LanScanServiceProtocol
-//
-//    private var sessionId: UUID?
-//
-//    init(
-//        sessionRepo: ScanSessionRepositoryProtocol,
-//        deviceRepo: DeviceRepositoryProtocol,
-//        bt: BluetoothServiceProtocol,
-//        lan: LanScanServiceProtocol
-//    ) {
-//        self.sessionRepo = sessionRepo
-//        self.deviceRepo = deviceRepo
-//        self.bt = bt
-//        self.lan = lan
-//
-//        setupCallbacks()
-//    }
-//
-//    private func setupCallbacks() {
-//        bt.onDeviceFound = { [weak self] device in
-//            guard let self else { return }
-//            self.devices.append(device)
-//        }
-//
-//        lan.onDeviceFound = { [weak self] device in
-//            guard let self else { return }
-//            self.devices.append(device)
-//        }
-//    }
-//
-//    func startScanning(type: ScanSessionType) async {
-//        isScanning = true
-//
-//        do {
-//            let newSessionId = try await sessionRepo.createSession(type: type)
-//            sessionId = newSessionId
-//
-//            switch type {
-//            case .bluetooth:
-//                bt.startScan(timeout: 15)
-//            case .lan:
-//                lan.startScan()
-//            case .combined:
-//                bt.startScan(timeout: 15)
-//                lan.startScan()
-//            }
-//
-//        } catch {
-//            print("startScanning error: \(error)")
-//            isScanning = false
-//        }
-//    }
-//
-//    func stopScanning() async {
-//        isScanning = false
-//        bt.stopScan()
-//        lan.stopScan()
-//
-//        guard let sessionId else { return }
-//
-//        do {
-//            try await deviceRepo.saveDevices(devices, to: sessionId)
-//            try await sessionRepo.updateSessionEndDate(sessionId, endDate: Date())
-//        } catch {
-//            print("stopScanning error: \(error)")
-//        }
-//    }
-//}
-import Foundation
+import QuartzCore
+
 @MainActor
 final class ScanViewModel: ObservableObject {
 
     @Published var devices: [Device] = []
     @Published var isScanning = false
-    @Published var remainingTime: Int = 0
+    @Published var progress: Double = 0
+    @Published var errorHandler: ScanErrorHandler
 
     private let sessionRepo: ScanSessionRepositoryProtocol
     private let deviceRepo: DeviceRepositoryProtocol
     private let bt: BluetoothServiceProtocol
 
     private var sessionId: UUID?
-    private var countdownTimer: Timer?
+    private var displayLink: CADisplayLink?
+    private var scanDuration: Double = 15
+    private var scanStartTime: Date?
 
-    // Экран скажет что делать, когда сканирование закончено
+    private var requestedTimeout: Int = 15
+    private var scanRequested = false
+    
+    private var cancellables = Set<AnyCancellable>()
+
     var onScanFinished: ((UUID) -> Void)?
 
     init(
         sessionRepo: ScanSessionRepositoryProtocol,
         deviceRepo: DeviceRepositoryProtocol,
-        bt: BluetoothServiceProtocol
+        bt: BluetoothServiceProtocol,
+        errorHandler: ScanErrorHandler
     ) {
         self.sessionRepo = sessionRepo
         self.deviceRepo = deviceRepo
         self.bt = bt
-        setupCallbacks()
+        self.errorHandler = errorHandler
+
+        bindBluetooth()
     }
+
+    private func bindBluetooth() {
+
+        bt.scanStarted
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                guard let self else { return }
+                guard self.scanRequested else { return }
+
+                Task { @MainActor in
+                    do {
+                        self.sessionId = try await self.sessionRepo.createSession(type: .bluetooth)
+
+                        self.scanDuration = Double(self.requestedTimeout)
+                        self.scanStartTime = Date()
+                        self.isScanning = true
+                        self.startSmoothProgress()
+
+                    } catch {
+                        self.bt.stopScan()
+                        self.scanRequested = false
+                        self.errorHandler.handle(.scanFailed(error.localizedDescription))
+                    }
+                }
+            }
+            .store(in: &cancellables)
+
+        bt.deviceFound
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] device in
+                guard let self else { return }
+                    if let index = self.devices.firstIndex(where: { $0.identifier == device.identifier }) {
     
-    private func setupCallbacks() {
-        bt.onDeviceFound = { [weak self] device in
-            guard let self = self else { return }
-            
-            Task { @MainActor in
-                self.devices.append(device)
+                        let old = self.devices[index]
+                        self.devices[index] = Device(
+                            id: old.id,
+                            name: device.name ?? old.name,
+                            identifier: old.identifier,
+                            secondaryIdentifier: old.secondaryIdentifier,
+                            rssi: device.rssi ?? old.rssi,
+                            status: .discovered,
+                            source: .bluetooth,
+                            scanSessionId: old.scanSessionId
+                        )
+                } else {
+                    self.devices.append(device)
+                }
             }
-        }
+            .store(in: &cancellables)
 
-        bt.onScanCompleted = { [weak self] in
-            Task { @MainActor in
-                await self?.handleScanCompleted()
+        bt.errorOccured
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] error in
+                guard let self else { return }
+                self.displayLink?.invalidate()
+                self.isScanning = false
+                self.scanRequested = false
+                self.errorHandler.handle(error)
             }
-        }
+            .store(in: &cancellables)
 
-        bt.onBluetoothDisabled = { [weak self] in
-            Task { @MainActor in
-                self?.isScanning = false
+        bt.scanCompleted
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                Task { await self?.handleScanCompleted() }
             }
-        }
+            .store(in: &cancellables)
     }
 
-
-    // MARK: - Start scan
-
-    func startScanning(timeout: Int = 15) async {
+    func startScanning(timeout: Int = 15) {
         devices.removeAll()
-        isScanning = true
-        remainingTime = timeout
+        progress = 0
+        displayLink?.invalidate()
+        scanStartTime = nil
+        isScanning = false
+        sessionId = nil
 
-        do {
-            let newSession = try await sessionRepo.createSession(type: .bluetooth)
-            sessionId = newSession
+        scanRequested = true
+        requestedTimeout = timeout
 
-            startCountdown(seconds: timeout)
-            bt.startScan(timeout: TimeInterval(timeout))
-
-        } catch {
-            isScanning = false
-        }
+        bt.startScan(timeout: TimeInterval(timeout))
     }
 
-    // MARK: - Countdown
-
-    private func startCountdown(seconds: Int) {
-        countdownTimer?.invalidate()
-
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] t in
-            guard let self else { return }
-            self.remainingTime -= 1
-
-            if self.remainingTime <= 0 {
-                t.invalidate()
-            }
-        }
-    }
-
-    // MARK: - Stop scan
-
-    func stopScanning() async {
-        countdownTimer?.invalidate()
+    func stopScanning() {
+        displayLink?.invalidate()
         bt.stopScan()
-        await handleScanCompleted()
     }
 
-    // MARK: - Save & navigate
+    private func startSmoothProgress() {
+        displayLink?.invalidate()
+
+        displayLink = CADisplayLink(target: self, selector: #selector(updateProgress))
+        displayLink?.add(to: .main, forMode: .common)
+    }
+
+    @objc private func updateProgress() {
+        guard let start = scanStartTime, isScanning else { return }
+
+        let elapsed = Date().timeIntervalSince(start)
+        progress = min(1.0, elapsed / scanDuration)
+
+        if progress >= 1.0 {
+            displayLink?.invalidate()
+        }
+    }
 
     private func handleScanCompleted() async {
-        countdownTimer?.invalidate()
+        displayLink?.invalidate()
         isScanning = false
+        scanRequested = false
 
         guard let sessionId else { return }
 
@@ -192,10 +164,11 @@ final class ScanViewModel: ObservableObject {
             try await deviceRepo.saveDevices(devices, to: sessionId)
             try await sessionRepo.updateSessionEndDate(sessionId, endDate: Date())
 
+            errorHandler.handleSuccess(devicesCount: devices.count)
             onScanFinished?(sessionId)
 
         } catch {
-            print("Saving error:", error)
+            errorHandler.handle(.savingFailed)
         }
     }
 }
