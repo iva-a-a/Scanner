@@ -33,6 +33,7 @@ struct DeviceDetailsView: View {
                         }
 
                         DetailRow(title: "Source", value: device.source.rawValue)
+                        DetailRow(title: "Status", value: device.status.text)
                     }
                 }
                 .padding(.horizontal)
@@ -45,4 +46,3 @@ struct DeviceDetailsView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 }
-

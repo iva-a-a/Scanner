@@ -9,6 +9,8 @@ import SwiftUI
 
 struct DeviceCard: View {
     let device: Device
+    let onConnect: (() -> Void)?
+    let onDisconnect: (() -> Void)?
 
     var body: some View {
         FrostedCard {
@@ -24,15 +26,36 @@ struct DeviceCard: View {
                     Text(device.identifier)
                         .foregroundColor(.secondaryText)
                         .font(.caption)
+
+                    DeviceStatusBadge(status: device.status)
+                        .padding(.top, 2)
                 }
 
                 Spacer()
 
-                if let rssi = device.rssi {
-                    Text("\(rssi) dBm")
-                        .foregroundColor(.success)
-                        .font(.caption)
+                if device.status == .connected {
+                    Button {
+                        onDisconnect?()
+                    } label: {
+                        Image(systemName: "xmark.circle")
+                            .foregroundColor(.error)
+                    }
+                    .buttonStyle(.borderless)
+
+                } else if device.status == .connecting {
+                    ProgressView()
+                        .scaleEffect(0.7)
+
+                } else {
+                    Button {
+                        onConnect?()
+                    } label: {
+                        Image(systemName: "link.badge.plus")
+                            .foregroundColor(.primaryApp)
+                    }
+                    .buttonStyle(.borderless)
                 }
+
             }
             .frame(minHeight: 70)
         }
