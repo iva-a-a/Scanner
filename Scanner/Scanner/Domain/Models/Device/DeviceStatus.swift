@@ -11,4 +11,5 @@ enum DeviceStatus: String {
     case connecting
     case connected
     case failed
+    case disconnected
 }
