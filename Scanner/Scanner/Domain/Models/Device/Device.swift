@@ -13,7 +13,7 @@ struct Device: Identifiable, Hashable {
     let identifier: String       // UUID (BT) или IP (LAN)
     let secondaryIdentifier: String?  // MAC (LAN)
     let rssi: Int?               // только BT
-    let status: DeviceStatus
+    var status: DeviceStatus
     let source: DeviceSource
     let scanSessionId: UUID
 }
