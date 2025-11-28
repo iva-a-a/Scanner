@@ -46,5 +46,10 @@ final class AppAssembly {
             BluetoothService()
         }
         .inObjectScope(.container)
+        
+        container.register(ScanErrorHandler.self) { _ in
+            ScanErrorHandler()
+        }
+        .inObjectScope(.container)
     }
 }
