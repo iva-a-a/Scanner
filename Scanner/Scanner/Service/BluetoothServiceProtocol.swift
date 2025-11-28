@@ -6,12 +6,13 @@
 //
 
 import Foundation
-import CoreBluetooth
+internal import Combine
 
 protocol BluetoothServiceProtocol: AnyObject {
-    var onDeviceFound: ((Device) -> Void)? { get set }
-    var onScanCompleted: (() -> Void)? { get set }
-    var onBluetoothDisabled: (() -> Void)? { get set }
+    var scanStarted: PassthroughSubject<Void, Never> { get }
+    var scanCompleted: PassthroughSubject<Void, Never> { get }
+    var deviceFound: PassthroughSubject<Device, Never> { get }
+    var errorOccured: PassthroughSubject<ScanError, Never> { get }
 
     func startScan(timeout: TimeInterval)
     func stopScan()

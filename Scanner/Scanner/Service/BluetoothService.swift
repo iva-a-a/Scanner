@@ -5,8 +5,9 @@
 //  Created by Alena Ivanova on 27.11.2025.
 //
 
-import Foundation
 import CoreBluetooth
+internal import Combine
+import Foundation
 
 final class BluetoothService: NSObject, BluetoothServiceProtocol {
 
@@ -15,9 +16,10 @@ final class BluetoothService: NSObject, BluetoothServiceProtocol {
     private var pendingScan = false
     private var scanTimeout: TimeInterval = 15
 
-    var onDeviceFound: ((Device) -> Void)?
-    var onScanCompleted: (() -> Void)?
-    var onBluetoothDisabled: (() -> Void)?
+    let scanStarted = PassthroughSubject<Void, Never>()
+    let scanCompleted = PassthroughSubject<Void, Never>()
+    let deviceFound = PassthroughSubject<Device, Never>()
+    let errorOccured = PassthroughSubject<ScanError, Never>()
 
     override init() {
         super.init()
@@ -35,17 +37,12 @@ final class BluetoothService: NSObject, BluetoothServiceProtocol {
 
         if centralManager == nil {
             configureBluetooth()
-            pendingScan = true
-            return
         }
 
         guard let manager = centralManager else { return }
 
-        if manager.state == .poweredOn {
-            beginScan()
-        } else {
-            pendingScan = true
-        }
+        pendingScan = true
+        handleBluetoothState(manager.state)
     }
 
     func stopScan() {
@@ -53,15 +50,41 @@ final class BluetoothService: NSObject, BluetoothServiceProtocol {
         scanning = false
 
         centralManager?.stopScan()
-        onScanCompleted?()
+        scanCompleted.send()
     }
 
     private func beginScan() {
         scanning = true
+        scanStarted.send()
+
         centralManager?.scanForPeripherals(withServices: nil)
 
         DispatchQueue.main.asyncAfter(deadline: .now() + scanTimeout) { [weak self] in
             self?.stopScan()
+        }
+    }
+
+    private func handleBluetoothState(_ state: CBManagerState) {
+        guard pendingScan else { return }
+
+        switch state {
+        case .poweredOn:
+            pendingScan = false
+            beginScan()
+        case .poweredOff:
+            pendingScan = false
+            errorOccured.send(.bluetoothPoweredOff)
+        case .unauthorized:
+            pendingScan = false
+            errorOccured.send(.permissionDenied)
+        case .unsupported:
+            pendingScan = false
+            errorOccured.send(.bluetoothUnavailable)
+        case .resetting, .unknown:
+            break
+        @unknown default:
+            pendingScan = false
+            errorOccured.send(.unknown)
         }
     }
 }
@@ -69,22 +92,7 @@ final class BluetoothService: NSObject, BluetoothServiceProtocol {
 extension BluetoothService: CBCentralManagerDelegate {
 
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        switch central.state {
-        case .poweredOn:
-            if pendingScan {
-                pendingScan = false
-                beginScan()
-            }
-
-        case .poweredOff, .unauthorized:
-            onBluetoothDisabled?()
-
-        case .unsupported, .resetting, .unknown:
-            break
-
-        @unknown default:
-            break
-        }
+        handleBluetoothState(central.state)
     }
 
     func centralManager(
@@ -101,9 +109,8 @@ extension BluetoothService: CBCentralManagerDelegate {
             rssi: RSSI.intValue,
             status: .discovered,
             source: .bluetooth,
-            scanSessionId: UUID() // VM заменит на фактический sessionId
+            scanSessionId: UUID()
         )
-
-        onDeviceFound?(device)
+        deviceFound.send(device)
     }
 }
