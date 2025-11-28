@@ -11,8 +11,6 @@ import SwiftUI
 struct ScanView: View {
 
     @StateObject private var vm: ScanViewModel
-    @State private var navigateToResults = false
-    @State private var completedSessionId: UUID?
 
     init() {
         _vm = StateObject(wrappedValue: ViewModelFactory().makeScanViewModel())
@@ -27,7 +25,7 @@ struct ScanView: View {
                     endPoint: .bottom
                 )
                 .ignoresSafeArea()
-
+                
                 VStack(spacing: 20) {
                     
                     if vm.isScanning {
@@ -38,8 +36,8 @@ struct ScanView: View {
                             .foregroundColor(.surface)
                             .padding(.top, 20)
                     }
-
-
+                    
+                    
                     Button(vm.isScanning ? "Stop" : "Start scanning") {
                         Task {
                             vm.isScanning ? vm.stopScanning() : vm.startScanning()
@@ -51,25 +49,12 @@ struct ScanView: View {
                     .foregroundColor(.surfaceElevated)
                     .cornerRadius(16)
                     .padding(.horizontal)
-
+                    
                     Spacer()
                 }
             }
-            .onAppear {
-                vm.onScanFinished = { sessionId in
-                    completedSessionId = sessionId
-                    navigateToResults = true
-                }
-            }
-            .background(
-                NavigationLink(
-                    destination: ScanResultsView(sessionId: completedSessionId ?? UUID(), vm: vm),
-                    isActive: $navigateToResults
-                ) { EmptyView() }
-            )
             .navigationTitle("Device Search")
         }
         .scanAlerts(using: $vm.errorHandler.alert)
     }
-    
 }
