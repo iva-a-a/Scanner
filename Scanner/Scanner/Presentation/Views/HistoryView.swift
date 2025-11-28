@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+
 struct HistoryView: View {
 
     @StateObject private var vm: HistoryViewModel
@@ -17,26 +18,27 @@ struct HistoryView: View {
     var body: some View {
         NavigationView {
             List(vm.sessions) { session in
-                NavigationLink(
-                    destination: SessionDevicesView(session: session, vm: vm)
-                ) {
+                NavigationLink {
+                    SessionDetailsView(sessionId: session.id)
+                } label: {
                     VStack(alignment: .leading) {
                         Text(session.type.rawValue.capitalized)
                             .font(.headline)
                             .foregroundColor(.primaryText)
+
                         Text("Start: \(session.startDate.formatted())")
                             .font(.subheadline)
-                            .foregroundColor(.primaryText)
+                            .foregroundColor(.secondary)
+
                         Text("End: \(session.endDate.formatted())")
                             .font(.subheadline)
-                            .foregroundColor(.secondaryText)
+                            .foregroundColor(.secondary)
                     }
                 }
             }
             .navigationTitle("History")
             .task { await vm.loadSessions() }
             .scanAlerts(using: $vm.errorHandler.alert)
-
         }
     }
 }
