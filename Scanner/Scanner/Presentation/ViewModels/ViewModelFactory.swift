@@ -20,14 +20,17 @@ final class ViewModelFactory {
         ScanViewModel(
             sessionRepo: container.resolve(ScanSessionRepositoryProtocol.self)!,
             deviceRepo: container.resolve(DeviceRepositoryProtocol.self)!,
-            bt: container.resolve(BluetoothServiceProtocol.self)!
+            bt: container.resolve(BluetoothServiceProtocol.self)!,
+            errorHandler: container.resolve(ScanErrorHandler.self)!
         )
     }
 
     func makeHistoryViewModel() -> HistoryViewModel {
         HistoryViewModel(
             sessionRepo: container.resolve(ScanSessionRepositoryProtocol.self)!,
-            deviceRepo: container.resolve(DeviceRepositoryProtocol.self)!
+            deviceRepo: container.resolve(DeviceRepositoryProtocol.self)!,
+            errorHandler: container.resolve(ScanErrorHandler.self)!
         )
     }
 }
+
