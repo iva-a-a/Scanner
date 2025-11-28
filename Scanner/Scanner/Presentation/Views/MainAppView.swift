@@ -23,6 +23,6 @@ struct MainAppView: View {
                     Label("History", systemImage: "clock.arrow.circlepath")
                 }
         }
-        .accentColor(.blue)
+        .accentColor(.primaryApp)
     }
 }

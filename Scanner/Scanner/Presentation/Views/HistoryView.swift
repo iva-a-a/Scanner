@@ -23,16 +23,20 @@ struct HistoryView: View {
                     VStack(alignment: .leading) {
                         Text(session.type.rawValue.capitalized)
                             .font(.headline)
+                            .foregroundColor(.primaryText)
                         Text("Start: \(session.startDate.formatted())")
                             .font(.subheadline)
+                            .foregroundColor(.primaryText)
                         Text("End: \(session.endDate.formatted())")
                             .font(.subheadline)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.secondaryText)
                     }
                 }
             }
             .navigationTitle("History")
             .task { await vm.loadSessions() }
+            .scanAlerts(using: $vm.errorHandler.alert)
+
         }
     }
 }

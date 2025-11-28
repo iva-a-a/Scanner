@@ -14,10 +14,13 @@ struct DetailRow: View {
     var body: some View {
         HStack {
             Text(title)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondaryText)
+
             Spacer()
+
             Text(value)
-                .foregroundColor(.white)
+                .foregroundColor(.primaryText)
         }
+        .padding(.vertical, 4)
     }
 }

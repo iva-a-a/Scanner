@@ -8,20 +8,25 @@
 
 import SwiftUI
 import Lottie
-import SwiftUI
 
 struct ScanProgressView: View {
-    var remainingTime: Int
+    let progress: Double
 
     var body: some View {
-        VStack {
+        VStack(spacing: 16) {
+            
             LottieView(animationName: "radar")
                 .frame(height: 180)
 
-            Text("\(remainingTime) sec. left")
-                .foregroundColor(.white)
+            ProgressView(value: progress)
+                .progressViewStyle(.linear)
+                .tint(.secondaryApp)
+                .scaleEffect(x: 1, y: 2, anchor: .center)
+                .padding(.horizontal, 30)
+
+            Text("\(Int(progress * 100))%")
+                .foregroundColor(.secondaryApp)
                 .font(.headline)
-                .padding(.top, 10)
         }
     }
 }

@@ -16,7 +16,7 @@ struct LaunchScreen: View {
 
     var body: some View {
         if isActive {
-            ScanView()
+            MainAppView()
         } else {
             VStack {
                 LottieView(animationName:"networkLoading")
@@ -26,10 +26,11 @@ struct LaunchScreen: View {
                     .font(.largeTitle)
                     .fontWeight(.semibold)
                     .padding(.top, 20)
+                    .foregroundColor(.primaryApp)
 
                 Text("Scanning Wi-Fi & Bluetooth")
                     .font(.headline)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondaryText)
                     .padding(.top, 4)
             }
             .onAppear {

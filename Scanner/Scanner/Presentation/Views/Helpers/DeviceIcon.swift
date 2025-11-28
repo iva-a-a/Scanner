@@ -13,7 +13,7 @@ struct DeviceIcon: View {
     var body: some View {
         Image(systemName: "antenna.radiowaves.left.and.right")
             .font(.system(size: size))
-            .foregroundStyle(.blue)
+            .foregroundStyle(Color.primaryApp)
             .frame(minHeight: size)
     }
 }

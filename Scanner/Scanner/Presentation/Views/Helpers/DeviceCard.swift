@@ -12,16 +12,17 @@ struct DeviceCard: View {
 
     var body: some View {
         FrostedCard {
-            HStack {
+            HStack(spacing: 12) {
+
                 DeviceIcon()
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(device.name ?? "Unknown device")
-                        .foregroundColor(.white)
+                        .foregroundColor(.primaryText)
                         .font(.headline)
 
                     Text(device.identifier)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondaryText)
                         .font(.caption)
                 }
 
@@ -29,7 +30,7 @@ struct DeviceCard: View {
 
                 if let rssi = device.rssi {
                     Text("\(rssi) dBm")
-                        .foregroundColor(.green.opacity(0.8))
+                        .foregroundColor(.success)
                         .font(.caption)
                 }
             }

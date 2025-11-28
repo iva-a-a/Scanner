@@ -21,14 +21,17 @@ struct DeviceDetailsView: View {
                 Text(device.name ?? "Unknown device")
                     .font(.title2)
                     .fontWeight(.semibold)
+                    .foregroundColor(.primaryText)
 
                 FrostedCard {
                     VStack(spacing: 12) {
                         DetailRow(title: "Identifier", value: device.identifier)
                         DetailRow(title: "MAC", value: device.secondaryIdentifier ?? "—")
+
                         if let rssi = device.rssi {
                             DetailRow(title: "RSSI", value: "\(rssi) dBm")
                         }
+
                         DetailRow(title: "Source", value: device.source.rawValue)
                     }
                 }
@@ -37,7 +40,9 @@ struct DeviceDetailsView: View {
                 Spacer()
             }
         }
+        .background(Color.background.ignoresSafeArea())
         .navigationTitle("Information")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
+

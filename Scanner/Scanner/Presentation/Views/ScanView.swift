@@ -7,7 +7,6 @@
 
 
 import SwiftUI
-import SwiftUI
 
 struct ScanView: View {
 
@@ -23,32 +22,33 @@ struct ScanView: View {
         NavigationView {
             ZStack {
                 LinearGradient(
-                    colors: [.blue.opacity(0.2), .black.opacity(0.9)],
+                    colors: [.background, .backgroudGradient],
                     startPoint: .top,
                     endPoint: .bottom
                 )
                 .ignoresSafeArea()
 
                 VStack(spacing: 20) {
-
+                    
                     if vm.isScanning {
-                        ScanProgressView(remainingTime: vm.remainingTime)
+                        ScanProgressView(progress: vm.progress)
                     } else {
                         Image(systemName: "dot.radiowaves.left.and.right")
                             .font(.system(size: 80))
-                            .foregroundColor(.white)
+                            .foregroundColor(.surface)
                             .padding(.top, 20)
                     }
 
+
                     Button(vm.isScanning ? "Stop" : "Start scanning") {
                         Task {
-                            vm.isScanning ? await vm.stopScanning() : await vm.startScanning()
+                            vm.isScanning ? vm.stopScanning() : vm.startScanning()
                         }
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(vm.isScanning ? .red : .blue)
-                    .foregroundColor(.white)
+                    .background(vm.isScanning ? .error : .secondaryApp)
+                    .foregroundColor(.surfaceElevated)
                     .cornerRadius(16)
                     .padding(.horizontal)
 
@@ -69,5 +69,7 @@ struct ScanView: View {
             )
             .navigationTitle("Device Search")
         }
+        .scanAlerts(using: $vm.errorHandler.alert)
     }
+    
 }
