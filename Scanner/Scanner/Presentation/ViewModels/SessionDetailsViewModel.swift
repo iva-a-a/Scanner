@@ -41,6 +41,7 @@ final class SessionDetailsViewModel: ObservableObject {
 
         do {
             devices = try await deviceRepo.fetchDevices(for: sessionId)
+            syncStatuses()
         } catch {
             errorHandler.handle(.scanFailed("Failed to load devices"))
         }
@@ -68,4 +69,13 @@ final class SessionDetailsViewModel: ObservableObject {
     func disconnect(_ device: Device) {
         bt.disconnect(from: device.identifier)
     }
+    
+    func syncStatuses() {
+        for i in devices.indices {
+            let id = devices[i].identifier
+            let status = bt.currentStatus(for: id)
+            devices[i].status = status
+        }
+    }
+
 }

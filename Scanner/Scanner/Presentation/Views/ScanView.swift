@@ -55,6 +55,6 @@ struct ScanView: View {
             }
             .navigationTitle("Device Search")
         }
-        .scanAlerts(using: $vm.errorHandler.alert)
+        .scanAlerts(using: vm.errorHandler)
     }
 }

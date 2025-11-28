@@ -10,11 +10,14 @@ import SwiftUI
 
 struct ScanAlertViewModifier: ViewModifier {
 
-    @Binding var alert: ScanAlert?
+    @ObservedObject var handler: ScanErrorHandler
 
     func body(content: Content) -> some View {
         content
-            .alert(item: $alert) { alert in
+            .alert(item: Binding(
+                get: { handler.alert },
+                set: { handler.alert = $0 }
+            )) { alert in
                 Alert(
                     title: Text(alert.title),
                     message: Text(alert.message),
@@ -25,7 +28,7 @@ struct ScanAlertViewModifier: ViewModifier {
 }
 
 extension View {
-    func scanAlerts(using alert: Binding<ScanAlert?>) -> some View {
-        self.modifier(ScanAlertViewModifier(alert: alert))
+    func scanAlerts(using handler: ScanErrorHandler) -> some View {
+        modifier(ScanAlertViewModifier(handler: handler))
     }
 }

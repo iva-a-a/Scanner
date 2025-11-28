@@ -13,7 +13,14 @@ protocol BluetoothServiceProtocol: AnyObject {
     var scanCompleted: PassthroughSubject<Void, Never> { get }
     var deviceFound: PassthroughSubject<Device, Never> { get }
     var errorOccured: PassthroughSubject<ScanError, Never> { get }
+    
+    var deviceStatusChanged: PassthroughSubject<(String, DeviceStatus), Never> { get }
 
     func startScan(timeout: TimeInterval)
     func stopScan()
+    
+    func connect(to identifier: String)
+    func disconnect(from identifier: String)
+    
+    func currentStatus(for identifier: String) -> DeviceStatus
 }

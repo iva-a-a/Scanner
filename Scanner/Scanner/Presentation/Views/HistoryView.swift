@@ -22,7 +22,7 @@ struct HistoryView: View {
                     SessionDetailsView(sessionId: session.id)
                 } label: {
                     VStack(alignment: .leading) {
-                        Text(session.type.rawValue.capitalized)
+                        Text("Scanner: " + session.type.rawValue.capitalized)
                             .font(.headline)
                             .foregroundColor(.primaryText)
 
@@ -38,7 +38,7 @@ struct HistoryView: View {
             }
             .navigationTitle("History")
             .task { await vm.loadSessions() }
-            .scanAlerts(using: $vm.errorHandler.alert)
+            .scanAlerts(using: vm.errorHandler)
         }
     }
 }

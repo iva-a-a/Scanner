@@ -25,5 +25,8 @@ struct SessionDetailsView: View {
         .navigationTitle("Devices")
         .navigationBarTitleDisplayMode(.inline)
         .background(Color.background.ignoresSafeArea())
+        .onAppear {
+            vm.syncStatuses()
+        }
     }
 }
