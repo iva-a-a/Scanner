@@ -5,7 +5,7 @@
 //  Created by Alena Ivanova on 27.11.2025.
 //
 
-
+import Foundation
 import Swinject
 
 final class ViewModelFactory {
@@ -28,7 +28,15 @@ final class ViewModelFactory {
     func makeHistoryViewModel() -> HistoryViewModel {
         HistoryViewModel(
             sessionRepo: container.resolve(ScanSessionRepositoryProtocol.self)!,
+            errorHandler: container.resolve(ScanErrorHandler.self)!
+        )
+    }
+    
+    func makeSessionDetailsViewModel(sessionId: UUID) -> SessionDetailsViewModel {
+        SessionDetailsViewModel(
+            sessionId: sessionId,
             deviceRepo: container.resolve(DeviceRepositoryProtocol.self)!,
+            bt: container.resolve(BluetoothServiceProtocol.self)!,
             errorHandler: container.resolve(ScanErrorHandler.self)!
         )
     }
