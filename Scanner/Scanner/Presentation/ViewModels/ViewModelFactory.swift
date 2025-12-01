@@ -20,7 +20,7 @@ final class ViewModelFactory {
         ScanViewModel(
             sessionRepo: container.resolve(ScanSessionRepositoryProtocol.self)!,
             deviceRepo: container.resolve(DeviceRepositoryProtocol.self)!,
-            bt: container.resolve(BluetoothServiceProtocol.self)!,
+            scanService: container.resolve(ScanServiceProtocol.self)!,
             errorHandler: container.resolve(ScanErrorHandler.self)!
         )
     }

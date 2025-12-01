@@ -51,5 +51,19 @@ final class AppAssembly {
             ScanErrorHandler()
         }
         .inObjectScope(.container)
+        
+        
+        container.register(LANServiceProtocol.self) { _ in
+            LANService()
+        }
+        .inObjectScope(.container)
+        
+        container.register(ScanServiceProtocol.self) { r in
+            let bt = r.resolve(BluetoothServiceProtocol.self)!
+            let lan = r.resolve(LANServiceProtocol.self)!
+            return ScanService(bt: bt, lan: lan)
+        }
+        .inObjectScope(.container)
+
     }
 }
