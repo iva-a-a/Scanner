@@ -22,6 +22,7 @@ struct SessionDetailsView: View {
             onDisconnect: { vm.disconnect($0) }
         )
         .task { await vm.loadDevices() }
+        .searchable(text: $vm.searchText, prompt: "Search devices")
         .navigationTitle("Devices")
         .navigationBarTitleDisplayMode(.inline)
         .background(Color.background.ignoresSafeArea())
@@ -30,3 +31,4 @@ struct SessionDetailsView: View {
         }
     }
 }
+

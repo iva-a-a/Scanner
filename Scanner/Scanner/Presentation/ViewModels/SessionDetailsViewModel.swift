@@ -14,6 +14,7 @@ final class SessionDetailsViewModel: ObservableObject {
     @Published var devices: [Device] = []
     @Published var isLoading = false
     @Published var errorHandler: ScanErrorHandler
+    @Published var searchText: String = ""
 
     private let sessionId: UUID
     private let deviceRepo: DeviceRepositoryProtocol
@@ -33,15 +34,35 @@ final class SessionDetailsViewModel: ObservableObject {
         self.errorHandler = errorHandler
 
         bindBluetooth()
+        bindSearch()
     }
 
     func loadDevices() async {
+        await search()
+    }
+
+    private func bindSearch() {
+        $searchText
+            .removeDuplicates()
+            .debounce(for: .milliseconds(250), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in
+                Task { await self?.search() }
+            }
+            .store(in: &cancellables)
+    }
+
+    func search() async {
         isLoading = true
         defer { isLoading = false }
 
         do {
-            devices = try await deviceRepo.fetchDevices(for: sessionId)
+            devices = try await deviceRepo.fetchDevices(
+                for: sessionId,
+                matching: searchText
+            )
+
             syncStatuses()
+
         } catch {
             errorHandler.handle(.scanFailed("Failed to load devices"))
         }
@@ -62,14 +83,6 @@ final class SessionDetailsViewModel: ObservableObject {
             .store(in: &cancellables)
     }
 
-    func connect(_ device: Device) {
-        bt.connect(to: device.identifier)
-    }
-
-    func disconnect(_ device: Device) {
-        bt.disconnect(from: device.identifier)
-    }
-    
     func syncStatuses() {
         for i in devices.indices {
             let id = devices[i].identifier
@@ -78,4 +91,11 @@ final class SessionDetailsViewModel: ObservableObject {
         }
     }
 
+    func connect(_ device: Device) {
+        bt.connect(to: device.identifier)
+    }
+
+    func disconnect(_ device: Device) {
+        bt.disconnect(from: device.identifier)
+    }
 }

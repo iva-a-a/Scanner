@@ -35,16 +35,6 @@ final class DeviceRepository: DeviceRepositoryProtocol {
         }
     }
 
-    func fetchDevices(for sessionId: UUID) async throws -> [Device] {
-        let result = try await context.perform {
-            let request: NSFetchRequest<DeviceEntity> = DeviceEntity.fetchRequest()
-            request.predicate = NSPredicate(format: "scanSession.id == %@", sessionId as CVarArg)
-
-            return try self.context.fetch(request)
-        }
-        return result.map(DeviceMapper.toDomain(_:))
-    }
-
     func deleteDevices(for sessionId: UUID) async throws {
         try await context.perform {
             let request = NSFetchRequest<NSFetchRequestResult>(entityName: "DeviceEntity")
@@ -66,26 +56,24 @@ final class DeviceRepository: DeviceRepositoryProtocol {
         }
     }
     
-    func fetchSessionIdsMatchingDeviceName(_ name: String) async throws -> [UUID] {
-        try await context.perform {
+    func fetchDevices(for sessionId: UUID, matching text: String) async throws -> [Device] {
+        let result = try await context.perform {
 
-            let request = NSFetchRequest<NSDictionary>(entityName: "DeviceEntity")
+            let request: NSFetchRequest<DeviceEntity> = DeviceEntity.fetchRequest()
 
-            request.predicate = NSPredicate(
-                format: "name CONTAINS[cd] %@",
-                name
-            )
-
-            request.resultType = .dictionaryResultType
-            request.propertiesToFetch = ["scanSession.id"]
-
-            let raw = try self.context.fetch(request)
-
-            let ids: [UUID] = raw.compactMap { dict in
-                dict["scanSession.id"] as? UUID
+            if text.isEmpty {
+                request.predicate = NSPredicate(format: "scanSession.id == %@", sessionId as CVarArg)
+            } else {
+                request.predicate = NSPredicate(
+                    format: "scanSession.id == %@ AND (name CONTAINS[cd] %@ OR identifier CONTAINS[cd] %@)",
+                    sessionId as CVarArg,
+                    text,
+                    text
+                )
             }
-
-            return Array(Set(ids)) // уникализируем
+            return try self.context.fetch(request)
         }
+        return result.map(DeviceMapper.toDomain(_:))
     }
+
 }
