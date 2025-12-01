@@ -50,12 +50,14 @@ final class ScanService: ScanServiceProtocol {
             .store(in: &cancellables)
 
         bt.errorOccured
+            .removeDuplicates(by: { $0.localizedDescription == $1.localizedDescription })
             .sink { [weak self] error in
                 self?.errorOccurred.send(error)
             }
             .store(in: &cancellables)
 
         lan.errorOccurred
+            .removeDuplicates(by: { $0.localizedDescription == $1.localizedDescription })
             .sink { [weak self] error in
                 self?.errorOccurred.send(error)
             }
