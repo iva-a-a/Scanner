@@ -13,10 +13,18 @@ final class BluetoothService: NSObject, BluetoothServiceProtocol {
 
     private var centralManager: CBCentralManager?
     private var peripherals: [String: CBPeripheral] = [:]
+
+    // scan
     private var scanTimeout: TimeInterval = 15
     private var pendingScan = false
     private var scanning = false
 
+    // connection timeout
+    private var connectionTimeouts: [String: DispatchWorkItem] = [:]
+    private var forcedFail: Set<String> = []
+    private let connectionTimeout: TimeInterval = 10
+
+    // output
     let scanStarted = PassthroughSubject<Void, Never>()
     let scanCompleted = PassthroughSubject<Void, Never>()
     let deviceFound = PassthroughSubject<Device, Never>()
@@ -65,10 +73,24 @@ final class BluetoothService: NSObject, BluetoothServiceProtocol {
         }
     }
 
+
     func connect(to identifier: String) {
         guard let p = peripherals[identifier] else { return }
-        centralManager?.connect(p, options: nil)
+
         deviceStatusChanged.send((identifier, .connecting))
+
+        centralManager?.connect(p, options: nil)
+        let timeoutTask = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+
+            if p.state != .connected {
+                self.forcedFail.insert(identifier)
+                self.centralManager?.cancelPeripheralConnection(p)
+            }
+            self.connectionTimeouts[identifier] = nil
+        }
+        connectionTimeouts[identifier] = timeoutTask
+        DispatchQueue.main.asyncAfter(deadline: .now() + connectionTimeout, execute: timeoutTask)
     }
 
     func disconnect(from identifier: String) {
@@ -130,16 +152,36 @@ extension BluetoothService: CBCentralManagerDelegate {
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         let id = peripheral.identifier.uuidString
+
+        connectionTimeouts[id]?.cancel()
+        connectionTimeouts[id] = nil
+        forcedFail.remove(id)
+
         deviceStatusChanged.send((id, .connected))
     }
 
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         let id = peripheral.identifier.uuidString
+
+        connectionTimeouts[id]?.cancel()
+        connectionTimeouts[id] = nil
+        forcedFail.remove(id)
+
         deviceStatusChanged.send((id, .failed))
     }
 
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         let id = peripheral.identifier.uuidString
+
+        connectionTimeouts[id]?.cancel()
+        connectionTimeouts[id] = nil
+
+        if forcedFail.contains(id) {
+            forcedFail.remove(id)
+            deviceStatusChanged.send((id, .failed))
+            return
+        }
+
         deviceStatusChanged.send((id, .disconnected))
     }
 }
