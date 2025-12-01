@@ -22,13 +22,13 @@ struct LaunchScreen: View {
                 LottieView(animationName:"networkLoading")
                     .frame(height: 200)
 
-                Text("Network Analyzer")
+                Text("Device Scanner App")
                     .font(.largeTitle)
                     .fontWeight(.semibold)
                     .padding(.top, 20)
                     .foregroundColor(.primaryApp)
 
-                Text("Scanning Wi-Fi & Bluetooth")
+                Text("Scanning Lan & Bluetooth")
                     .font(.headline)
                     .foregroundColor(.secondaryText)
                     .padding(.top, 4)
