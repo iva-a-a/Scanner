@@ -50,9 +50,7 @@ final class AppAssembly {
         container.register(ScanErrorHandler.self) { _ in
             ScanErrorHandler()
         }
-        .inObjectScope(.container)
-        
-        
+
         container.register(LANServiceProtocol.self) { _ in
             LANService()
         }
