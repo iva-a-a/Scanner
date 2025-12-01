@@ -15,7 +15,7 @@ struct DeviceDetailsView: View {
         ScrollView {
             VStack(spacing: 20) {
 
-                DeviceIcon(size: 90)
+                DeviceIcon(size: 90, source: device.source)
                     .padding(.top, 40)
 
                 Text(device.name ?? "Unknown device")

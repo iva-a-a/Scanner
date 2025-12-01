@@ -16,7 +16,7 @@ struct DeviceCard: View {
         FrostedCard {
             HStack(spacing: 12) {
 
-                DeviceIcon()
+                DeviceIcon(source: device.source)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(device.name ?? "Unknown device")
@@ -33,27 +33,30 @@ struct DeviceCard: View {
 
                 Spacer()
 
-                if device.status == .connected {
-                    Button {
-                        onDisconnect?()
-                    } label: {
-                        Image(systemName: "xmark.circle")
-                            .foregroundColor(.error)
-                    }
-                    .buttonStyle(.borderless)
+                if device.source == .bluetooth {
 
-                } else if device.status == .connecting {
-                    ProgressView()
-                        .scaleEffect(0.7)
+                    if device.status == .connected {
+                        Button {
+                            onDisconnect?()
+                        } label: {
+                            Image(systemName: "xmark.circle")
+                                .foregroundColor(.error)
+                        }
+                        .buttonStyle(.borderless)
 
-                } else {
-                    Button {
-                        onConnect?()
-                    } label: {
-                        Image(systemName: "link.badge.plus")
-                            .foregroundColor(.primaryApp)
+                    } else if device.status == .connecting {
+                        ProgressView()
+                            .scaleEffect(0.7)
+
+                    } else {
+                        Button {
+                            onConnect?()
+                        } label: {
+                            Image(systemName: "link.badge.plus")
+                                .foregroundColor(.primaryApp)
+                        }
+                        .buttonStyle(.borderless)
                     }
-                    .buttonStyle(.borderless)
                 }
 
             }
